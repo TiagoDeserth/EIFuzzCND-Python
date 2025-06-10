@@ -20,12 +20,12 @@ class OfflinePhase:
             #class_colum (str): O nome da coluna que contém os rótulos das classes
             #features (List[str]): Uma lista com os nomes das colunas de atributos
 
-        print("Iniciando Fase Offline...")
+        print("\nIniciando Fase Offline...")
 
         grouped_data = train_data.groupby(class_column)
         self.model.known_labels = list(grouped_data.groups.keys())
 
-        print(f"Classes conhecidas encontradas: {self.model.known_labels}")
+        print(f"\nClasses conhecidas encontradas: {self.model.known_labels}")
         
         for class_label, group in grouped_data:
             print(f"\nProcessando classe: {class_label} ({len(group)} exemplos)")

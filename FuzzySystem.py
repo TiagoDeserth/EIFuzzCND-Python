@@ -30,7 +30,7 @@ if __name__ == '__main__':
     #O dataset Íris tem classes bem definidas e pequenas
     #Usar um K grande (como 4 [anteriormente]) para cada classe não é ideal
     #O K vai ser setado para criação de 2 micro-clusters para cada uma das 3 classes
-    K_CLUSTERS = 2
+    K_CLUSTERS = 4
 
     ALPHA = 2.0
     THETA = 1.0
