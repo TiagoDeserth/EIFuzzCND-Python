@@ -17,7 +17,7 @@ class SupervisedModel:
         self.alpha = alpha
         self.theta = theta
         self.min_weight = min_weight
-        self.classifier: Dict[Any, List[SPFMiC]] = {}
+        self.classifier: Dict[Any, List[SPFMiC]] = {} #Estrutura de dicionário que será o MCC | Ele está vazio porque o treinamento ainda não começou | Ele vai armazenar os micro-clusters
         self.known_labels: List[Any] = []
 
     def _sumarize_clusters_into_spfmics(self, data: np.ndarray, centroides: np.ndarray,
@@ -27,11 +27,15 @@ class SupervisedModel:
         spfmics_list = []
         num_clusters = len(centroides)
 
+        #Cria um loop para cada cluster encontrado pelo Fuzzy C-Means
+        #A fim de criar um objeto SPFMiC para cada um dos clusters, resumindo suas propriedades
         for i in range(num_clusters):
             centroid_i = centroides[i]
 
             #Obtém os exemplos que mais pertencem a este cluster
             cluster_membership = u_matrix[i]
+
+            #Encontra quais pontos de dados possuem o maior grau de pertencimento a este cluster específico
             example_indices = np.where(np.argmax(u_matrix, axis = 0) == i)[0]
 
             if len(example_indices) < self.min_weight:
@@ -50,6 +54,8 @@ class SupervisedModel:
             me = 0.0
             cf1_pertinenciais = np.zeros_like(centroid_i)
 
+            #Itera sobre os membros do cluster e calcula as estatísticas agregadas
+            #Aqui é onde se resumo as propriedades do cluster. Em vez de guardar todos os pontos, o SPFMiC guarde essas somas estatísticas. 
             for j in example_indices:
                 example_point = data[j]
                 pertinence = u_matrix[i, j]
@@ -64,6 +70,7 @@ class SupervisedModel:
             spfmic.cf1_pertinenciais = cf1_pertinenciais
             spfmic.cf1_tipicidades = cf1_pertinenciais
 
+            #Adiciona o micro-cluster recém cirado e preenchido à lista
             spfmics_list.append(spfmic)
 
         return spfmics_list

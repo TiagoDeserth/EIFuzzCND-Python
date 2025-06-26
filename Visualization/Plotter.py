@@ -8,7 +8,7 @@ from typing import Dict, List
 from Structs.SPFMiC import SPFMiC
 
 def visualize_offline_results(train_data: pd.DataFrame, class_column: str, features: List[str],
-                              model: Dict[int, List[SPFMiC]]):
+                              model: Dict[int, List[SPFMiC]], dataset_name: str):
     
     #Visualiza os resultados da fase Offline usando PCA para redução de dimensionalidade
     #Args:
@@ -26,17 +26,30 @@ def visualize_offline_results(train_data: pd.DataFrame, class_column: str, featu
     plt.figure(figsize = (12, 8))
 
     #2. Plotar os pontos de dados originais
-    target_names = load_iris().target_names
-    colors = ['navy', 'turquoise', 'darkorange']
-    
-    for i, target_name in enumerate(target_names):
+    # target_names = load_iris().target_names
+    # colors = ['navy', 'turquoise', 'darkorange']
+
+    unique_labels = sorted(train_data[class_column].unique())
+
+    colors = plt.cm.get_cmap('viridis', len(unique_labels))
+
+    # for i, target_name in enumerate(target_names):
+    #     plt.scatter(
+    #         data_2d[train_data[class_column] == i, 0],
+    #         data_2d[train_data[class_column] == i, 1],
+    #         color = colors[i],
+    #         alpha = 0.8,
+    #         lw = 2,
+    #         label = target_name
+    #     )
+
+    for i, label in enumerate(unique_labels):
         plt.scatter(
-            data_2d[train_data[class_column] == i, 0],
-            data_2d[train_data[class_column] == i, 1],
-            color = colors[i],
+            data_2d[train_data[class_column] == label, 0],
+            data_2d[train_data[class_column] == label, 1],
+            color = colors(i),
             alpha = 0.8,
-            lw = 2,
-            label = target_name
+            label = f'Classe {label}'
         )
 
     #3. Extrair, transformar e plotar os centroide dos SPFMiCs
@@ -60,7 +73,7 @@ def visualize_offline_results(train_data: pd.DataFrame, class_column: str, featu
         )
 
     plt.legend(loc = 'best', shadow = False, scatterpoints = 1)
-    plt.title('Resultado da Fase Offline do EIFuzzCND no Dataset Íris (com PCA)')
+    plt.title('Resultado da Fase Offline do EIFuzzCND no Dataset {dataset_name} (com PCA)')
     plt.xlabel('Componente principal 1')
     plt.ylabel('Componente principal 2')
     plt.grid(True)

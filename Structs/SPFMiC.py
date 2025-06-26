@@ -21,4 +21,4 @@ class SPFMiC:
             self.t_atualizacao = tempo
 
     def __repr__(self):
-          return (f"SPFMiC(rotulo = {self.rotulo}, n = {self.n}, centroide = {self.centroide.round(2)})")
+        return (f"SPFMiC(rotulo = {self.rotulo}, n = {self.n}, centroide = {self.centroide.round(2)})")
