@@ -56,7 +56,7 @@ def visualize_offline_results(train_data: pd.DataFrame, class_column: str, featu
     all_centroids = []
     for class_label, spfmics in model.items():
         for spfmic in spfmics:
-            all_centroids.append(spfmic.centroide)
+            all_centroids.append(spfmic.centroid)
     
     if all_centroids:
         #Aplicar a MESMA transformação PCA aos centroides

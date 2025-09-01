@@ -1,142 +1,180 @@
 import pandas as pd
 import os
+from collections import Counter
 
-#Íris - Scikit-learn
-from sklearn.datasets import load_iris
-
-#Importando as classes dos módulos
+# *Importando as classes dos módulos
 from Models.SupervisedModel import SupervisedModel
 from Phases.OfflinePhase import OfflinePhase
+from Phases.OnlinePhase import OnlinePhase
 from Visualization.Plotter import visualize_offline_results
 
-def load_rbf_data(filename = "Data/RBF_Dataset.csv"):
-    #Carrega o dataset RBF a partir de um arquivo CSV
-    print(f"Carregando o dataset RBF de '{filename}'...")
+# def separate_data_offline_online(filepath: str, num_classes_offline: int, num_instances_offline: int, class_column: str = 'classes'):
+#     # *Faz a separação do conjunto de dados original em Offline e Online, como descrito na dissertação do Lucas (Tabela 5.1)
+#     print(f"--- Iniciando a separação do dataset: {filepath} ---")
 
-    if not os.path.exists(filename):
-        print(f"ERRO: O arquivo '{filename}' não foi encontrado. Certifique-se de que ele está na mesma pasta do script")
-        return None
-    
-    df = pd.read_csv(filename)
+#     df_complete = pd.read_csv(filepath)
+#     print(f"Total de instâncias carregadas: {len(df_complete)}")
 
-    return df
-    
-def load_iris_data():
-    print("Carregando o dataset Íris...")
-    iris = load_iris()
+#     classes_uniques = sorted(df_complete[class_column].unique())
+#     classes_offline_labels = classes_uniques[:num_classes_offline]
+#     print(f"Classes selecionadas para a fase Offline: {classes_offline_labels}")
 
-    #Criando o DataFrame
-    #iris.data contém os atributos (features)
-    #iris.feature_names contém os nomes das colunas de atributos
-    df = pd.DataFrame(data = iris.data, columns = iris.feature_names)
+#     # *Cria o DataFrame para ser usado na fase Offline
+#     df_instances_offline = df_complete[df_complete[class_column].isin(classes_offline_labels)]
+#     df_offline = df_instances_offline.head(num_instances_offline).copy()
 
-    #Adicionando a coluna de classe/rótulo
-    #iris.target contém os rótulos numéricos [0, 1, 2]
-    df['class'] = iris.target
+#     # *Cria o Dataframe para ser usado na fase Online
+#     indices_used_offline = df_offline.index
+#     df_online = df_complete.drop(indices_used_offline).sample(frac = 1, random_state = 42).reset_index(drop = True)
 
-    return df
+#     print(f"\nSeparação feita:")
+#     print(f"-> Tamanho do conjunto Offline: {len(df_offline)} instâncias")
+#     print(f"-> Tamanho do conjunto Online: {len(df_online)} instâncias")
+
+#     return df_offline, df_online
+
+def separate_data_offline_online(filepath: str, num_instances_offline: int):
+    """
+    Separa o conjunto de dados em duas partes: Offline e Online.
+    A separação é feita de forma simples e sequencial:
+        - As primeiras 'num_instances_offline' linhas são usadas para a fase Offline.
+        - Todo o restante do ficheiro é usado para a fase Online, mantendo a ordem original.
+    """
+
+    print(f"--- Iniciando a separação sequencial do dataset: {filepath} ---")
+
+    #1. Carrega o dataset completo
+    df_complete = pd.read_csv(filepath)
+    print(f"Total de instâncias carregadas: {len(df_complete)}")
+
+    #2. Seleciona as primeiras 'num_instances_offline' para o treino
+    #   O método .loc[] é usado para selecionar linhas por sua posição inteira
+    df_offline = df_complete.iloc[:num_instances_offline].copy()
+
+    #3. Seleciona todo o restante para a fase Online
+    #   Começa da linha 'num_instances_offline' e vai até o final do dataset
+    df_online = df_complete.iloc[num_instances_offline:].copy()
+
+    #Reajusta os índices do dataset Online para começar do 0, o que é uma boa prática
+    df_online.reset_index(drop = True, inplace = True)
+
+    print(f"\nSeparação feita:")
+    print(f"-> Tamanho do conjunto Offline: {len(df_offline)} instâncias (Linhas 0 a {num_instances_offline - 1})")
+    print(f"-> Tamnho do conjunto Online: {len(df_online)} instâncias (Linhas {num_instances_offline} em diante)")
+
+    return df_offline, df_online
 
 if __name__ == '__main__':
-    FUZINESS = 2.0
+    # *Parâmetros paar o RBF
+    DATASET_FILE = 'Data/RBF_Dataset.csv'
+    DATASET_NAME = 'RBF'
+    CLASS_COLUMN = 'classes'
 
-    #Parâmetro específico para o dataset Íris
-    #O dataset Íris tem classes bem definidas e pequenas
-    #Usar um K grande (como 4 [anteriormente]) para cada classe não é ideal
-    #O K vai ser setado para criação de 2 micro-clusters para cada uma das 3 classes
+    # *Parâmetros do modelo
+    FUZZINESS = 2.0
     K_CLUSTERS = 4
-
     ALPHA = 2.0
     THETA = 1.0
     MIN_WEIGHT_OFFLINE = 15
 
-    #1. Carrefar os dados do Íris
-    #---------------------------------------------------
-    # train_df = load_iris_data()
-    # print("\nAmostra do Dataset Íris carregado:")
-    # print(train_df.head())
+    # *Parâmetros para a separação do dataset 
+    # CLASSES_OFFLINE_RBF = 3
+    INSTANCES_OFFLINE_RBF = 2000
 
-    # print("\nDistribuição das classes:")
-    # print(train_df['class'].value_counts().sort_index())
-    #---------------------------------------------------
+    online_params = {
+        'T': 40,
+        'k_short': 4,
+        'phi': 0.8,
+        'min_weight_online': 15
+    }
 
-    full_train_df = load_rbf_data()
-
-    if full_train_df is not None:
-        train_df = full_train_df.head(2000)
-
-        print("\nAmostra do Dataset RBF carregado:")
-        print(train_df.head())
-
-        print("\nDistribuição das classes no conjunto de treino Offline (primeiras 2000 instâncias):")
-        print(train_df['classes'].value_counts().sort_index())
-
-        supervised_model = SupervisedModel(
-            fuziness = FUZINESS,
-            k_clusters = K_CLUSTERS,
-            alpha = ALPHA,
-            theta = THETA,
-            min_weight = MIN_WEIGHT_OFFLINE
-        )
-
-        offline_phase = OfflinePhase(supervised_model)
-
-        feature_names = [col for col in train_df.columns if col != 'classes']
-
-        model_of_known_classes = offline_phase.run(
-            train_data = train_df,
-            class_column = 'classes',
-            features = feature_names
-        )
-
-        for class_label, spfmics in model_of_known_classes.items():
-            print(f"Class: {class_label}")
-            for spfmic in spfmics:
-                print(f"  -{spfmic}") 
-
-    #2. Inicializar o modelo com os parâmetros
-    #Aqui ele só instancia o SupervisedModel com os parâmetros já definidos
-    #---------------------------------------------------
-    # supervised_model = SupervisedModel(
-    #     fuziness = FUZINESS,
-    #     k_clusters = K_CLUSTERS,
-    #     alpha = ALPHA,
-    #     theta = THETA,
-    #     min_weight = MIN_WEIGHT_OFFLINE
+    # # *1. Separar o dataset em Offline e Online
+    # rbf_offline_df, rbf_online_df = separate_data_offline_online(
+    #     filepath = DATASET_FILE,
+    #     num_classes_offline = CLASSES_OFFLINE_RBF,
+    #     num_instances_offline = INSTANCES_OFFLINE_RBF,
+    #     class_column = CLASS_COLUMN
     # )
-    #---------------------------------------------------
 
-    #3. Inicializar e executar a fase Offline
-    #Cria a instância da classe OfflinePhase
-    #Essa clase contém toda a lógica de como treinar, enquanto o SupervisedModel representa o resultado do treino
-    #---------------------------------------------------
-    # offline_phase = OfflinePhase(supervised_model)
-
-    # #Obter os nomes dos atributos (features) dinamicamente do DataFrame
-    # feature_names = [col for col in train_df.columns if col != 'class']
-
-    # model_of_known_classes = offline_phase.run(
-    #     train_data = train_df,
-    #     class_column = 'class',
-    #     features = feature_names
-    # )
-    #---------------------------------------------------
-
-    # #4. Visualizar o resultado do modelo treinado
-    # print("\n--- Modelo de Classes Conhecidas (MCC) gerado com o Dataset Íris ---") 
-    # for class_label, spfmics in model_of_known_classes.items():
-
-    #     #Opcional: Mapear rótulos numéricos para os nomes das espécies para melhorar a visualização
-    #     species_name = load_iris().target_names[class_label]
-    #     print(f"Class: {class_label} ({species_name})")
-    #     for spfmic in spfmics:
-    #         print(f"  -{spfmic}")
-
-    #4. Visualizar os resultados chamando a função nova (importada)
-    visualize_offline_results(
-        train_data = train_df,
-        class_column = 'classes',
-        features = feature_names,
-        model = model_of_known_classes,
-        dataset_name = 'RBF'
+    rbf_offline_df, rbf_online_df = separate_data_offline_online(
+        filepath = DATASET_FILE,
+        num_instances_offline = INSTANCES_OFFLINE_RBF
     )
+
+    # *2. Inicializar o modelo com os parâmetros
+    supervised_model = SupervisedModel(
+        fuzziness = FUZZINESS,
+        k_clusters = K_CLUSTERS,
+        alpha = ALPHA,
+        theta = THETA,
+        min_weight = MIN_WEIGHT_OFFLINE
+    )
+
+    # *3. Inicializar e executar a Fase Offline com o conjunto de treino correto
+    offline_phase = OfflinePhase(supervised_model)
+    feature_names = [col for col in rbf_offline_df.columns if col != CLASS_COLUMN]
+
+    model_of_kown_classes = offline_phase.run(
+        train_data = rbf_offline_df,
+        class_column = CLASS_COLUMN,
+        features = feature_names
+    )
+
+    # *4. Exibir o resultado do modelo treinado no console
+    print("\n--- Modelo de Classes Conhecidas (MCC) gerado ---")
+    for class_label, spfmics in model_of_kown_classes.items():
+        print(f"Classe: {class_label}")
+        for spfmic in spfmics:
+            print(f" - {spfmic}")
+
+    # *5. Visualizar os resultados graficamente
+    print("\nIniciando visualização gráfica...")
+    visualize_offline_results(
+        train_data = rbf_offline_df,
+        class_column = CLASS_COLUMN,
+        features = feature_names,
+        model = model_of_kown_classes,
+        dataset_name = DATASET_NAME
+    )
+
+    # *RBF pronto para o uso na fase Online, uma prévia do mesmo:
+    print(f"\nO conjunto de dados online, com {len(rbf_online_df)} instâncias")
+
+    # *6. Fase Online
+    print("\nFeche o gráfico para iniciar a Fase Online...")
+    
+    online_phase = OnlinePhase(supervised_model, **online_params)
+    online_results = online_phase.run(
+        rbf_online_df,
+        CLASS_COLUMN, 
+        feature_names
+    )
+
+    # *7. Análise dos resultados online
+    print("\n--- Análise dos Resultados da Fase Online ---")
+
+    true_labels = [ex.true_label for ex in online_results]
+    classified_labels = [ex.classified_label for ex in online_results]
+
+    # *Classificados conhecidos
+    popular_classifieds = [(rt, rc) for rt, rc in zip(true_labels, classified_labels) if isinstance(rc, (int, float)) and rc != -1]
+
+    known_success = sum(1 for rt, rc in popular_classifieds if rt == rc)
+
+    print(f"Total de exemplos no fluxo online: {len(online_results)}")
+    
+    if popular_classifieds:
+        print(f"Acurácia nas instâncias classificados (não desconhecidas/NP): {known_success / len(popular_classifieds) * 100:.2f}%")
+    print("\nContagem de clasificações:")
+    print(Counter(classified_labels))
+    print("\nModelo de Novidades (MCD) final:")
+    if not online_phase.not_supervised_model.spfmics: 
+        print("Nenhum cluster de novidade foi criado")
+    else:
+        for spfmic in online_phase.not_supervised_model.spfmics:
+            print(f" - {spfmic}")
+
+
+
+
         

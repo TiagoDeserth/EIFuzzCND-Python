@@ -5,11 +5,11 @@ class Example:
     #Representa uma única instância de dados
     #Encapsula os atributos (ponto) e o rótulo da classe
 
-    def __init__(self, ponto: np.ndarray, rotulo_verdadeiro: Any, tempo: int = 0):
-        self.ponto = ponto
-        self.rotulo_verdadeiro = rotulo_verdadeiro
-        self.rotulo_classificado = None
-        self.tempo = tempo
+    def __init__(self, point: np.ndarray, true_label: Any, time: int = 0):
+        self.point = point
+        self.true_label = true_label
+        self.classified_label = None
+        self.time = time
 
     def __repr__(self):
-        return (f"Example(rotulo_verdadeiro = {self.rotulo_verdadeiro}, ponto = {self.ponto})")
+        return (f"Example(true_label = {self.true_label}, ponto = {self.point})")

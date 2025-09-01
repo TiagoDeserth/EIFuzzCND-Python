@@ -48,7 +48,7 @@ class OfflinePhase:
             cntr, u, _, _, _, _, _ = fuzz.cluster.cmeans(
                 data_points,
                 c = self.model.K, 
-                m = self.model.fuziness, 
+                m = self.model.fuzziness, 
                 error = 0.005, 
                 maxiter = 1000 
             )
