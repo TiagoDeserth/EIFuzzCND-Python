@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from sklearn.datasets import load_iris
 from typing import Dict, List
 
 from Structs.SPFMiC import SPFMiC
@@ -77,4 +76,18 @@ def visualize_offline_results(train_data: pd.DataFrame, class_column: str, featu
     plt.xlabel('Componente principal 1')
     plt.ylabel('Componente principal 2')
     plt.grid(True)
+    plt.show()
+
+def plot_performance_over_time(timestamps, accuracies, dataset_name):
+    plt.figure(figsize = (12, 6))
+    plt.plot(timestamps, accuracies, marker = 'o', linestyle = '-', label = 'Acurácia do EIFuzzCND')
+
+    plt.title(f"Desempenho ao longo do tempo do EIFuzzCND no Dataset {dataset_name}")
+    plt.xlabel("Número de Instâncias Processadas")
+    plt.ylabel("Acurácia")
+    plt.grid(True)
+    plt.legend()
+    plt.ylim(0, 1.05)
+
+    print("\nExibindo gráfico de desempenho ao londo do tempo...")
     plt.show()

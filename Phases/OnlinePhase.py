@@ -19,37 +19,57 @@ class OnlinePhase:
         self.unk_mem: List[Example] = []
         self.np_label_count = 0
 
-    def run(self, online_data: pd.DataFrame, class_column: str, features: List[str]):
-        #Simula a execução da Fase Online, processand o online_data como um fluxo
+    # def run(self, online_data: pd.DataFrame, class_column: str, features: List[str]):
+    #     #Simula a execução da Fase Online, processand o online_data como um fluxo
 
-        print("\n--- Iniciando Fase Online ---")
-        results = []
+    #     print("\n--- Iniciando Fase Online ---")
+    #     results = []
 
-        for index, row, in online_data.iterrows():
-            current_time = index + 1
-            point = row[features].values
-            true_label = row[class_column]
-            example = Example(point, true_label, current_time)
+    #     for index, row, in online_data.iterrows():
+    #         current_time = index + 1
+    #         point = row[features].values
+    #         true_label = row[class_column]
+    #         example = Example(point, true_label, current_time)
 
-            label, success = self.supervised_model.classify_new(example, current_time)
+    #         label, success = self.supervised_model.classify_new(example, current_time)
 
-            if not success:
-                label = self.not_supervised_model.classify_new(example, self.supervised_model.fuzziness)
+    #         if not success:
+    #             label = self.not_supervised_model.classify_new(example, self.supervised_model.fuzziness)
             
-            example.classified_label = label if label != -1 else 'desconhecido'
+    #         example.classified_label = label if label != -1 else 'desconhecido'
 
-            if example.classified_label == 'desconhecido':
-                self.unk_mem.append(example)
+    #         if example.classified_label == 'desconhecido':
+    #             self.unk_mem.append(example)
             
-            results.append(example)
+    #         results.append(example)
 
-            if len(self.unk_mem) >= self.params.get('T', 40):
-                print(f"\n[Tempo: {current_time}] Limiar T atingido. Executando Detecção de Novidades...")
-                self._multi_class_novelty_detection(current_time)
-                self.unk_mem = []
+    #         if len(self.unk_mem) >= self.params.get('T', 40):
+    #             print(f"\n[Tempo: {current_time}] Limiar T atingido. Executando Detecção de Novidades...")
+    #             self._multi_class_novelty_detection(current_time)
+    #             self.unk_mem = []
 
-        print("--- Fase Online Concluída ---")
-        return results
+    #     print("--- Fase Online Concluída ---")
+    #     return results
+
+    def process_example(self, example: Example):
+        current_time = example.time
+
+        label, success = self.supervised_model.classify_new(example, current_time)
+
+        if not success:
+            label = self.not_supervised_model.classify_new(example, self.supervised_model.fuzziness)
+
+        example.classified_label = label if label != -1 else 'desconhecido'
+
+        if example.classified_label == 'desconhecido':
+            self.unk_mem.append(example)
+
+        if len(self.unk_mem) >= self.params.get('T', 40):
+            print(f"\n[Tempo: {current_time}] Limiar T atingido. Executando Detecção de Novidades...")
+            self._multi_class_novelty_detection(current_time)
+            self.unk_mem = []
+        
+        return example
     
     def _generate_np_label(self):
         #Gera um novo rótulo para um Padrão de Novidade (Novelty Pattern)
@@ -101,7 +121,7 @@ class OnlinePhase:
 
             min_fr = min(frs)
 
-            if min_fr <= self.params.get('phi', 0.8):
+            if min_fr <= self.params.get('phi', 0.5):
                 print(f"  -> Cluster encontrado é extensão de classe conhecida (similaridade: {min_fr:.2f})")
             else:
                 new_label_np = self._generate_np_label()

@@ -50,3 +50,25 @@ class SPFMiC:
              return 0.0
         #A fórmula original usa N, não N-1. Manteremos consistência
         return np.sqrt(self.ssde / self.n) * scale_factor
+    
+    # # * --------------------------------------------------------------------------------------------
+    # # * IMPLEMENTAÇÃO DA ATUALIZAÇÃO INCREMENTAL
+    # # * Atualiza incrementalmente as estatísticas do SPFMiC com um novo exemplo
+    # # * Esta é a implementação que interfere no aprendizado online
+    # def assignment_example(self, example, pertinence, typicality, current_time):
+    #      self.n_examples += 1
+    #      self.time = current_time
+
+    #      # * Atualiza as somas lineares (vetores CF1)
+    #      self.cf1_pertinences += pertinence * example.point
+    #      self.cf1_typicalities += typicality * example.point
+
+    #      # * Atualiza a soma dos quadrados das distâncias (SSDE)
+    #      dis_sq = np.sum((example.point - self.centroid) ** 2)
+    #      self.ssde += pertinence * dis_sq
+
+    #      # * Atualiza o M-ésimo momento (Me)
+    #      self.me += pertinence ** self.alpha
+
+    #      # * Recalcule o centróide para refletir o novo exemplo
+    #      self.centroid = self.cf1_pertinences / self.me

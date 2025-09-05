@@ -42,12 +42,17 @@ class SupervisedModel:
         
         best_candidate = max(candidates, key = lambda c: c['typicality'])
         spfmic_winner = best_candidate['spfmic']
-        spfmic_winner.assignment_example(example, pertinence = best_candidate['pertinence'], typicality = best_candidate['typicality'], current_time = current_time)
+        spfmic_winner.assignment_example(example, 
+                                         pertinence = best_candidate['pertinence'], 
+                                         typicality = best_candidate['typicality'], 
+                                         current_time = current_time)
 
         return spfmic_winner.label, True
 
-    def _sumarize_clusters_into_spfmics(self, data: np.ndarray, centroids: np.ndarray,
-                                         u_matrix: np.ndarray, label: Any) -> List[SPFMiC]:
+    def _sumarize_clusters_into_spfmics(self, data: np.ndarray,
+                                         centroids: np.ndarray,
+                                         u_matrix: np.ndarray, 
+                                         label: Any) -> List[SPFMiC]:
         
          # Resume os resultados de um clustering em uma lista de SPFMiCs
         spfmics_list = []
