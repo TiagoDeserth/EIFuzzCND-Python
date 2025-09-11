@@ -50,7 +50,7 @@ def separate_data_offline_online(filepath: str, num_instances_offline: int):
     df_complete = pd.read_csv(filepath)
     print(f"Total de instâncias carregadas: {len(df_complete)}")
 
-    df_complete.dropna(inplace=True)
+    # df_complete.dropna(inplace=True)
 
     #2. Seleciona as primeiras 'num_instances_offline' para o treino
     #   O método .loc[] é usado para selecionar linhas por sua posição inteira
@@ -71,7 +71,7 @@ def separate_data_offline_online(filepath: str, num_instances_offline: int):
 
 if __name__ == '__main__':
     # *Parâmetros paar o RBF
-    DATASET_FILE = 'Data/RBF1_40000.csv' # *Altere aqui o nome do dataset
+    DATASET_FILE = 'Data/RBF3_40000.csv' # *Altere aqui o nome do dataset
     DATASET_NAME = 'RBF'
     CLASS_COLUMN = 'class'
 
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     # *Parâmetros para a separação do dataset 
     # CLASSES_OFFLINE_RBF = 3
-    INSTANCES_OFFLINE_RBF = 1000
+    INSTANCES_OFFLINE_RBF = 2000
 
     online_params = {
         'T': 40,
@@ -176,11 +176,28 @@ if __name__ == '__main__':
             true_so_far = [ex.true_label for ex in online_results]
             classified_so_far = [ex.classified_label for ex in online_results]
 
-            eval_true = [t for t, c in zip(true_so_far, classified_so_far) if c != 'desconhecido']
-            eval_classified = [c for c in classified_so_far if c != 'desconhecido']
+            #eval_true = [t for t, c in zip(true_so_far, classified_so_far) if c != 'desconhecido']
+            #eval_classified = [c for c in classified_so_far if c != 'desconhecido']
+
+            #eval_true = [str(t) for t, c in zip(true_so_far, classified_so_far) if c != 'desconhecido' and not (isinstance(t, float) and math.isnan(t))]
+            #eval_classified = [str(c) for c in classified_so_far if c != 'desconhecido' and not (isinstance(c, str) and c.lower() == 'nan')]
+
+            evaluation_pairs = []
+            for t, c in zip(true_so_far, classified_so_far):
+                is_true_label_valid = t is not None and not (isinstance(t, float) and math.isnan(t))
+
+                if c != 'desconhecido' and is_true_label_valid:
+                    evaluation_pairs.append((str(t), str(c)))
+
+            if evaluation_pairs:
+                eval_true, eval_classified = zip(*evaluation_pairs)
+                eval_true, eval_classified = list(eval_true), list(eval_classified)
+            else:
+                eval_true, eval_classified = [], []
 
             if eval_true:
-                metrics_calculator = Metrics(list(set(true_so_far))) # TODO: ver depois
+                all_labels_so_far = list(set(str(l) for l in true_so_far if l is not None and not math.isnan(l)))
+                metrics_calculator = Metrics(all_labels_so_far) # TODO: ver depois
                 metrics_calculator.calculate_metrics(eval_true, eval_classified)
 
                 performance_timestamps.append(current_time)
@@ -192,14 +209,30 @@ if __name__ == '__main__':
     true_labels = [ex.true_label for ex in online_results]
     classified_labels = [ex.classified_label for ex in online_results]
 
-    cleaned_true = [str(t) for t in true_labels if t is not None and not (isinstance(t, float) and math.isnan(t))]
-    cleaned_classified = [str(c) for c in classified_labels if c is not None and not (isinstance(c, float) and math.isnan(c))]
+    evaluation_pairs = []
+    for t, c in zip(true_labels, classified_labels):
+        is_true_label_valid = t is not None and not (isinstance(t, float) and math.isnan(t))
+        if c != 'desconhecido' and is_true_label_valid:
+            evaluation_pairs.append((str(t), str(c)))
+
+    if evaluation_pairs:
+        eval_true_labels, eval_classified_labels = zip(*evaluation_pairs)
+        eval_true_labels, eval_classified_labels = list(eval_true_labels), list(eval_classified_labels)
+    else:
+        eval_true_labels, eval_classified_labels = [], []
+    
+    #cleaned_true = [str(t) for t in true_labels if t is not None and not (isinstance(t, float) and math.isnan(t))]
+    #cleaned_classified = [str(c) for c in classified_labels if c is not None and not (isinstance(c, float) and math.isnan(c))]
 
     # Agora, filtramos os 'desconhecidos' a partir das listas já limpas
-    eval_true_labels = [t for t, c in zip(cleaned_true, cleaned_classified) if c != 'desconhecido']
-    eval_classified_labels = [c for c in cleaned_classified if c != 'desconhecido']
+    #eval_true_labels = [t for t, c in zip(cleaned_true, cleaned_classified) if c != 'desconhecido']
+    #eval_classified_labels = [c for c in cleaned_classified if c != 'desconhecido']
 
-    all_possible_labels = list(set(true_labels + classified_labels))
+    #all_possible_labels = list(set(str(l) for l in true_labels if l is not None and not math.isnan(l)) + list(set(classified_labels)))
+
+    true_set = set(str(l) for l in true_labels if l is not None and not (isinstance(l, float) and math.isnan(l)))
+    classified_set = set(str(c) for c in classified_labels if c is not None)
+    all_possible_labels = list(true_set.union(classified_set))
 
     metrics_calculator = Metrics(all_possible_labels)
     if eval_true_labels:
@@ -214,6 +247,7 @@ if __name__ == '__main__':
     print(Counter(classified_labels))
 
     print("\nModelo de Novidades (MCD) final:")
+    
     if not online_phase.not_supervised_model.spfmics:
         print("Nenhum cluster de novidade foi criado")
     else:
@@ -223,13 +257,6 @@ if __name__ == '__main__':
     # 8. Visualizar o desempenho ao longo do tempo
     if performance_timestamps:
         plot_performance_over_time(performance_timestamps, performance_accuracies, DATASET_NAME)
-
-
-
-
-
-
-
 
 
     # # *Classificados conhecidos
